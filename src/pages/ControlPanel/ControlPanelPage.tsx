@@ -40,7 +40,7 @@ const ControlPanelPage: React.FC = () => {
 
   const handleStateChange = async <K extends keyof ControlState>(key: K, value: ControlState[K]) => {
     if (!controls) return;
-    const previousState = { ...controls };
+    // const previousState = { ...controls };
     setToast(null);
     setControls(prev => prev ? ({ ...prev, [key]: value }) : null);
 

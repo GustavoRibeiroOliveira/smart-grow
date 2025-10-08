@@ -5,6 +5,7 @@
   --light-bg: #F4F7F5;
   --card-bg: #FFFFFF;
   --border-color: #e0e0e0;
+  --irrigation-blue: #3498db;
 }
 
 .control-panel-container {
@@ -103,6 +104,8 @@
 }
 
 .icon-button {
+  position: relative;
+  overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -114,6 +117,12 @@
   cursor: pointer;
   transition: all 0.2s ease-in-out;
   color: var(--primary-green);
+}
+
+.icon-button svg {
+  position: relative;
+  z-index: 2;
+  transition: color 0.5s ease;
 }
 
 .icon-button:hover {
@@ -132,6 +141,34 @@
 .light-on-icon {
   color: #f1c40f;
   filter: drop-shadow(0 0 5px #f1c40f);
+}
+
+@keyframes fill-up {
+  from {
+    height: 0%;
+  }
+  to {
+    height: 100%;
+  }
+}
+
+.icon-button::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  background-color: var(--irrigation-blue);
+  z-index: 1;
+}
+
+.icon-button.irrigating::before {
+  animation: fill-up 3s ease-out forwards;
+}
+
+.icon-button.irrigating svg {
+  color: white;
 }
 
 .switch {

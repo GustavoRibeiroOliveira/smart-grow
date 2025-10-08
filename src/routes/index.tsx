@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
 import HomePage from '../pages/Home/HomePage';
 import DashboardPage from '../pages/Dashboard/DashboardPage';
+import ControlPanelPage from '../pages/ControlPanel/ControlPanelPage';
 
 const router = createBrowserRouter([
   {
@@ -17,6 +18,10 @@ const router = createBrowserRouter([
       {
         path: 'dashboard',
         element: <DashboardPage />,
+      },
+      {
+        path: 'control-panel',
+        element: <ControlPanelPage />,
       },
     ],
   },

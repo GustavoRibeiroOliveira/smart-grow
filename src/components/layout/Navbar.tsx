@@ -15,6 +15,9 @@ const Navbar: React.FC = () => {
         <li>
           <Link to="/dashboard">Dashboard</Link>
         </li>
+        <li>
+          <Link to="/control-panel">Control Panel</Link>
+        </li>
       </ul>
     </nav>
   );

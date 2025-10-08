@@ -95,7 +95,7 @@ const DashboardPage: React.FC = () => {
     }
     return [...new Set(filteredData.map(d => format(d.time, 'dd/MM')))];
   };
-  
+
   const getAggregatedData = (key: 'humidity' | 'temperature' | 'light') => {
     if (filterType === 'day') return filteredData.map(d => d[key]);
     const aggregation: { [day: string]: { sum: number, count: number } } = {};
@@ -135,7 +135,11 @@ const DashboardPage: React.FC = () => {
           <div className="date-input-wrapper">
             <DatePicker
               selected={selectedDate}
-              onChange={(date: Date) => setSelectedDate(date)}
+              onChange={(date: Date | null) => {
+                if (date) {
+                  setSelectedDate(date);
+                }
+              }}
               minDate={dateBoundaries.minDate}
               maxDate={dateBoundaries.maxDate}
               showMonthYearPicker={filterType === 'month'}

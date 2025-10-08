@@ -22,7 +22,7 @@ const ControlPanelPage: React.FC = () => {
         setControls(apiData);
       } catch (error) {
         console.error("Falha ao buscar estado dos controles, usando dados estáticos.", error);
-        setToast({ message: "Servidor indisponível. Usando configurações padrão.", type: 'error'});
+        setToast({ message: "Servidor indisponível. Usando configurações padrão.", type: 'error' });
         setControls(staticControlState);
       }
     };
@@ -48,11 +48,11 @@ const ControlPanelPage: React.FC = () => {
       await apiUpdate({ [key]: value });
       setToast({ message: 'Configuração salva com sucesso!', type: 'success' });
     } catch (error) {
-    //   setToast({ message: 'Falha no servidor. A alteração foi desfeita.', type: 'error' });
-    //   setControls(previousState);
+      // setToast({ message: 'Falha no servidor. A alteração foi desfeita.', type: 'error' });
+      // setControls(previousState);
     }
   };
-  
+
   const handleManualIrrigation = async () => {
     if (isIrrigating || !controls) return;
     setIsIrrigating(true);
@@ -67,12 +67,12 @@ const ControlPanelPage: React.FC = () => {
       if (!response.ok) throw new Error('Falha ao acionar a irrigação.');
       setToast({ message: 'Sistema de irrigação acionado!', type: 'success' });
     } catch (error) {
-    //   setToast({ message: 'Falha ao acionar irrigação.', type: 'error' });
+      //   setToast({ message: 'Falha ao acionar irrigação.', type: 'error' });
     } finally {
       setTimeout(() => setIsIrrigating(false), 3000);
     }
   };
-  
+
   if (!controls) {
     return <div className="loading-container">Carregando controles...</div>;
   }

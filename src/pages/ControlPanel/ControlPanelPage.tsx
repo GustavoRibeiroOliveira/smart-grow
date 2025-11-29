@@ -3,10 +3,14 @@ import { IoBulbOutline, IoBulb, IoWater } from 'react-icons/io5';
 import Toast from '../../components/common/Toast';
 import './ControlPanelPage.css';
 
-interface ControlState { isAutoIrrigationOn: boolean; isAutoLightingOn: boolean; irrigationInterval: number; lightsOn: boolean; }
-const staticControlState: ControlState = { isAutoIrrigationOn: true, isAutoLightingOn: true, irrigationInterval: 24, lightsOn: false };
-const API_URL = 'https://api.example.com/controls';
-const ACTIONS_URL = 'https://api.example.com/actions';
+interface ControlState {
+  isAutoIrrigationOn: boolean;
+  isAutoLightingOn: boolean;
+  irrigationInterval: number;
+  lightsOn: boolean;
+}
+
+const API_BASE_URL = 'https://smartgrow-ajtn.onrender.com';
 
 const ControlPanelPage: React.FC = () => {
   const [controls, setControls] = useState<ControlState | null>(null);
@@ -16,40 +20,77 @@ const ControlPanelPage: React.FC = () => {
   useEffect(() => {
     const fetchControlState = async () => {
       try {
-        const response = await fetch(API_URL);
-        if (!response.ok) throw new Error('Falha na resposta da rede');
-        const apiData = await response.json();
-        setControls(apiData);
+        const [automacaoRes, statusRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/configuracao/automacao`),
+          fetch(`${API_BASE_URL}/status_sistema`)
+        ]);
+
+        if (!automacaoRes.ok || !statusRes.ok) throw new Error('Falha na resposta da rede');
+
+        const automacaoData = await automacaoRes.json();
+        const statusData = await statusRes.json();
+
+        setControls({
+          isAutoIrrigationOn: automacaoData.irrigacao,
+          isAutoLightingOn: automacaoData.iluminacao,
+          lightsOn: statusData.nivel_iluminacao > 0,
+          irrigationInterval: 24 
+        });
       } catch (error) {
-        console.error("Falha ao buscar estado dos controles, usando dados estáticos.", error);
-        setToast({ message: "Servidor indisponível. Usando configurações padrão.", type: 'error' });
-        setControls(staticControlState);
+        console.error("Erro ao buscar dados:", error);
+        setToast({ message: "Falha ao conectar com a Estufa.", type: 'error' });
       }
     };
     fetchControlState();
   }, []);
 
-  const apiUpdate = async (updatedState: Partial<ControlState>) => {
-    const response = await fetch(API_URL, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedState),
-    });
-    if (!response.ok) throw new Error('Falha ao atualizar o estado no servidor.');
-  };
-
   const handleStateChange = async <K extends keyof ControlState>(key: K, value: ControlState[K]) => {
     if (!controls) return;
-    // const previousState = { ...controls };
-    setToast(null);
+    const previousState = { ...controls };
+    
     setControls(prev => prev ? ({ ...prev, [key]: value }) : null);
+    setToast(null);
+
+    if (key === 'irrigationInterval') return;
 
     try {
-      await apiUpdate({ [key]: value });
-      setToast({ message: 'Configuração salva com sucesso!', type: 'success' });
+      if (key === 'isAutoIrrigationOn' || key === 'isAutoLightingOn') {
+        const sistema = key === 'isAutoIrrigationOn' ? 'irrigacao' : 'iluminacao';
+        
+        const response = await fetch(`${API_BASE_URL}/configuracao/automacao`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sistema, ativo: value }),
+        });
+
+        if (!response.ok) throw new Error('Falha na API');
+        setToast({ message: 'Configuração salva com sucesso!', type: 'success' });
+      }
     } catch (error) {
-      // setToast({ message: 'Falha no servidor. A alteração foi desfeita.', type: 'error' });
-      // setControls(previousState);
+      setToast({ message: 'Falha no servidor. Revertendo.', type: 'error' });
+      setControls(previousState);
+    }
+  };
+
+  const toggleLights = async () => {
+    if (!controls) return;
+    const newValue = !controls.lightsOn;
+    
+    setControls(prev => prev ? ({ ...prev, lightsOn: newValue }) : null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/controle/manual`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sistema: 'iluminacao', ligar: newValue }),
+      });
+
+      if (!response.ok) throw new Error('Erro ao acionar luzes');
+      setToast({ message: `Luzes ${newValue ? 'acesas' : 'apagadas'}!`, type: 'success' });
+
+    } catch (error) {
+      setToast({ message: 'Falha ao controlar luzes.', type: 'error' });
+      setControls(prev => prev ? ({ ...prev, lightsOn: !newValue }) : null);
     }
   };
 
@@ -59,22 +100,36 @@ const ControlPanelPage: React.FC = () => {
     setToast(null);
 
     try {
-      const response = await fetch(ACTIONS_URL, {
+      const response = await fetch(`${API_BASE_URL}/controle/manual`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'irrigate' }),
+        body: JSON.stringify({ sistema: 'irrigacao', ligar: true }),
       });
-      if (!response.ok) throw new Error('Falha ao acionar a irrigação.');
+
+      if (!response.ok) throw new Error('Falha ao irrigar');
       setToast({ message: 'Sistema de irrigação acionado!', type: 'success' });
+
+      setTimeout(async () => {
+        setIsIrrigating(false);
+        try {
+          await fetch(`${API_BASE_URL}/controle/manual`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sistema: 'irrigacao', ligar: false }),
+          });
+        } catch (e) {
+          console.error("Erro ao desligar irrigação:", e);
+        }
+      }, 3000);
+
     } catch (error) {
-      //   setToast({ message: 'Falha ao acionar irrigação.', type: 'error' });
-    } finally {
-      setTimeout(() => setIsIrrigating(false), 3000);
+      setToast({ message: 'Falha ao acionar irrigação.', type: 'error' });
+      setIsIrrigating(false);
     }
   };
 
   if (!controls) {
-    return <div className="loading-container">Carregando controles...</div>;
+    return <div className="loading-container">Carregando controles da estufa...</div>;
   }
 
   return (
@@ -101,10 +156,19 @@ const ControlPanelPage: React.FC = () => {
               <span className="slider round"></span>
             </label>
           </div>
-          <div className="control-item-vertical">
-            <label htmlFor="irrigation-interval">Intervalo de Irrigação (horas)</label>
-            <input id="irrigation-interval" type="number" className="control-input" value={controls.irrigationInterval} onChange={(e) => handleStateChange('irrigationInterval', Number(e.target.value))} disabled={controls.isAutoIrrigationOn} />
-          </div>
+          
+          {!controls.isAutoIrrigationOn && (
+            <div className="control-item-vertical">
+              <label htmlFor="irrigation-interval">Intervalo de Irrigação (horas)</label>
+              <input 
+                id="irrigation-interval" 
+                type="number" 
+                className="control-input" 
+                value={controls.irrigationInterval} 
+                onChange={(e) => handleStateChange('irrigationInterval', Number(e.target.value))} 
+              />
+            </div>
+          )}
         </div>
         <div className="control-card">
           <h2>Controles Manuais</h2>
@@ -113,7 +177,7 @@ const ControlPanelPage: React.FC = () => {
             <button className={`icon-button ${isIrrigating ? 'irrigating' : ''}`} onClick={handleManualIrrigation} disabled={controls.isAutoIrrigationOn || isIrrigating} title="Irrigar Agora">
               <IoWater size={28} />
             </button>
-            <button className="icon-button" onClick={() => handleStateChange('lightsOn', !controls.lightsOn)} disabled={controls.isAutoLightingOn} title={controls.lightsOn ? 'Apagar Luzes' : 'Acender Luzes'}>
+            <button className="icon-button" onClick={toggleLights} disabled={controls.isAutoLightingOn} title={controls.lightsOn ? 'Apagar Luzes' : 'Acender Luzes'}>
               {controls.lightsOn ? <IoBulb size={28} className="light-on-icon" /> : <IoBulbOutline size={28} />}
             </button>
           </div>

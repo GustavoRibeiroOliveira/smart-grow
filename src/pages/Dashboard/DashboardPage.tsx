@@ -16,26 +16,7 @@ registerLocale('pt-BR', ptBR);
 
 interface DataPoint { time: Date; humidity: number; temperature: number; light: number; }
 
-const generateMockData = (): DataPoint[] => {
-  const data: DataPoint[] = [];
-  const now = new Date();
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    for (let j = 0; j < 4; j++) {
-      const hour = j * 6;
-      const timestamp = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour);
-      data.push({
-        time: timestamp,
-        humidity: 60 + Math.random() * 15,
-        temperature: 22 + Math.random() * 5,
-        light: (hour > 6 && hour < 18) ? 8000 + Math.random() * 4000 : 0,
-      });
-    }
-  }
-  return data;
-};
-
-const staticData = generateMockData();
+const API_BASE_URL = 'https://smartgrow-ajtn.onrender.com';
 
 const DashboardPage: React.FC = () => {
   const [allData, setAllData] = useState<DataPoint[]>([]);
@@ -70,16 +51,24 @@ const DashboardPage: React.FC = () => {
     setLoading(true);
     setToast(null);
     try {
-      const response = await fetch('https://api.example.com/smartgrow-data-range');
+      const response = await fetch(`${API_BASE_URL}/leituras`);
       if (!response.ok) throw new Error('Falha na resposta da rede');
+      
       const apiResult = await response.json();
-      const formattedApiData = apiResult.map((d: any) => ({ ...d, time: parseISO(d.time) }));
+      
+      const formattedApiData = apiResult.map((d: any) => ({
+        time: parseISO(d.horario), 
+        humidity: d.umidade,       
+        temperature: d.temperatura, 
+        light: d.luminosidade       
+      }));
+
       setAllData(formattedApiData);
+      
       if (isManualRefresh) setToast({ message: 'Dados atualizados com sucesso!', type: 'success' });
     } catch (error) {
-      console.error("Falha ao buscar dados da API, usando dados estáticos.", error);
-      setAllData(staticData);
-      if (isManualRefresh) setToast({ message: 'Falha no servidor. Usando dados locais.', type: 'error' });
+      console.error("Erro ao buscar dados:", error);
+      if (isManualRefresh) setToast({ message: 'Falha ao conectar com a Estufa.', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -87,6 +76,8 @@ const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     fetchData();
+    const interval = setInterval(() => fetchData(), 10 * 60 * 1000); 
+    return () => clearInterval(interval);
   }, []);
 
   const getChartLabels = () => {
@@ -95,7 +86,7 @@ const DashboardPage: React.FC = () => {
     }
     return [...new Set(filteredData.map(d => format(d.time, 'dd/MM')))];
   };
-
+  
   const getAggregatedData = (key: 'humidity' | 'temperature' | 'light') => {
     if (filterType === 'day') return filteredData.map(d => d[key]);
     const aggregation: { [day: string]: { sum: number, count: number } } = {};
@@ -152,8 +143,8 @@ const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {loading ? (
-        <div className="loading-container">Carregando dados...</div>
+      {loading && allData.length === 0 ? (
+        <div className="loading-container">Carregando dados da estufa...</div>
       ) : (
         <div className="dashboard-flex-grid">
           <div className="chart-card"><h2>Umidade do Solo</h2><Line data={humidityChart} options={options} /></div>

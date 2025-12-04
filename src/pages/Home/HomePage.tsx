@@ -34,9 +34,6 @@ const HomePage: React.FC = () => {
             <li>
               <strong>Análise de Dados Históricos:</strong> Analise o desempenho passado para otimizar ciclos de cultivo futuros e aumentar a produtividade.
             </li>
-            <li>
-              <strong>Alertas e Notificações:</strong> Receba alertas em tempo real caso alguma variável saia dos parâmetros ideais, permitindo uma ação rápida.
-            </li>
           </ul>
         </div>
       </main>

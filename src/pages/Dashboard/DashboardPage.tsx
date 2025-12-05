@@ -101,7 +101,7 @@ const DashboardPage: React.FC = () => {
 
   const humidityChart = { labels: getChartLabels(), datasets: [{ label: 'Umidade do Solo (%)', data: getAggregatedData('humidity'), fill: true, backgroundColor: 'rgba(151, 188, 98, 0.4)', borderColor: '#97BC62', tension: 0.3 }], };
   const temperatureChart = { labels: getChartLabels(), datasets: [{ label: 'Temperatura Ambiente (°C)', data: getAggregatedData('temperature'), fill: false, borderColor: '#2C5F2D', tension: 0.3 }], };
-  const lightIntensityChart = { labels: getChartLabels(), datasets: [{ label: 'Intensidade de Luz (Lux)', data: getAggregatedData('light'), backgroundColor: '#97BC62' }], };
+  // const lightIntensityChart = { labels: getChartLabels(), datasets: [{ label: 'Intensidade de Luz (Lux)', data: getAggregatedData('light'), backgroundColor: '#97BC62' }], };
   const options = { responsive: true, plugins: { legend: { position: 'top' as const }, title: { display: false } }, scales: { x: { grid: { color: 'rgba(0,0,0,0.05)' } }, y: { grid: { color: 'rgba(0,0,0,0.05)' } } } };
 
   return (
@@ -149,7 +149,7 @@ const DashboardPage: React.FC = () => {
         <div className="dashboard-flex-grid">
           <div className="chart-card"><h2>Umidade do Solo</h2><Line data={humidityChart} options={options} /></div>
           <div className="chart-card"><h2>Temperatura Ambiente</h2><Line data={temperatureChart} options={options} /></div>
-          <div className="chart-card"><h2>Intensidade de Luz</h2><Bar data={lightIntensityChart} options={options} /></div>
+          {/* <div className="chart-card"><h2>Intensidade de Luz</h2><Bar data={lightIntensityChart} options={options} /></div> */}
         </div>
       )}
     </div>

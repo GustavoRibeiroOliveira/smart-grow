@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { IoBulbOutline, IoBulb, IoWater } from 'react-icons/io5';
+import { FaFan } from 'react-icons/fa';
 import Toast from '../../components/common/Toast';
 import './ControlPanelPage.css';
 
 interface ControlState {
   isAutoIrrigationOn: boolean;
   isAutoLightingOn: boolean;
+  isAutoVentilationOn: boolean;
   irrigationInterval: number;
   lightsOn: boolean;
+  ventilationOn: boolean;
 }
 
 const API_BASE_URL = 'https://smartgrow-ajtn.onrender.com';
@@ -31,9 +34,11 @@ const ControlPanelPage: React.FC = () => {
         const statusData = await statusRes.json();
 
         setControls({
-          isAutoIrrigationOn: automacaoData.irrigacao,
-          isAutoLightingOn: automacaoData.iluminacao,
+          isAutoIrrigationOn: automacaoData.irrigacao ?? true,
+          isAutoLightingOn: automacaoData.iluminacao ?? true,
+          isAutoVentilationOn: automacaoData.ventilacao ?? true,
           lightsOn: statusData.nivel_iluminacao > 0,
+          ventilationOn: statusData.velocidade_ventilacao > 0,
           irrigationInterval: 24 
         });
       } catch (error) {
@@ -54,8 +59,11 @@ const ControlPanelPage: React.FC = () => {
     if (key === 'irrigationInterval') return;
 
     try {
-      if (key === 'isAutoIrrigationOn' || key === 'isAutoLightingOn') {
-        const sistema = key === 'isAutoIrrigationOn' ? 'irrigacao' : 'iluminacao';
+      if (key === 'isAutoIrrigationOn' || key === 'isAutoLightingOn' || key === 'isAutoVentilationOn') {
+        let sistema = '';
+        if (key === 'isAutoIrrigationOn') sistema = 'irrigacao';
+        else if (key === 'isAutoLightingOn') sistema = 'iluminacao';
+        else if (key === 'isAutoVentilationOn') sistema = 'ventilacao';
         
         const response = await fetch(`${API_BASE_URL}/configuracao/automacao`, {
           method: 'POST',
@@ -91,6 +99,28 @@ const ControlPanelPage: React.FC = () => {
     } catch (error) {
       setToast({ message: 'Falha ao controlar luzes.', type: 'error' });
       setControls(prev => prev ? ({ ...prev, lightsOn: !newValue }) : null);
+    }
+  };
+
+  const toggleVentilation = async () => {
+    if (!controls) return;
+    const newValue = !controls.ventilationOn;
+    
+    setControls(prev => prev ? ({ ...prev, ventilationOn: newValue }) : null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/controle/manual`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sistema: 'ventilacao', ligar: newValue }),
+      });
+
+      if (!response.ok) throw new Error('Erro ao acionar ventilação');
+      setToast({ message: `Ventilação ${newValue ? 'ligada' : 'desligada'}!`, type: 'success' });
+
+    } catch (error) {
+      setToast({ message: 'Falha ao controlar ventilação.', type: 'error' });
+      setControls(prev => prev ? ({ ...prev, ventilationOn: !newValue }) : null);
     }
   };
 
@@ -142,6 +172,7 @@ const ControlPanelPage: React.FC = () => {
       <div className="control-grid">
         <div className="control-card">
           <h2>Automações</h2>
+          
           <div className="control-item">
             <label htmlFor="auto-irrigation">Irrigação Automática</label>
             <label className="switch">
@@ -149,10 +180,19 @@ const ControlPanelPage: React.FC = () => {
               <span className="slider round"></span>
             </label>
           </div>
+
           <div className="control-item">
             <label htmlFor="auto-lighting">Iluminação Automática</label>
             <label className="switch">
               <input id="auto-lighting" type="checkbox" checked={controls.isAutoLightingOn} onChange={(e) => handleStateChange('isAutoLightingOn', e.target.checked)} />
+              <span className="slider round"></span>
+            </label>
+          </div>
+
+          <div className="control-item">
+            <label htmlFor="auto-ventilation">Ventilação Automática</label>
+            <label className="switch">
+              <input id="auto-ventilation" type="checkbox" checked={controls.isAutoVentilationOn} onChange={(e) => handleStateChange('isAutoVentilationOn', e.target.checked)} />
               <span className="slider round"></span>
             </label>
           </div>
@@ -170,16 +210,24 @@ const ControlPanelPage: React.FC = () => {
             </div>
           )}
         </div>
+
         <div className="control-card">
           <h2>Controles Manuais</h2>
           <p className="manual-control-description">As ações manuais só são permitidas quando a automação correspondente está desligada.</p>
           <div className="manual-controls-wrapper">
+            
             <button className={`icon-button ${isIrrigating ? 'irrigating' : ''}`} onClick={handleManualIrrigation} disabled={controls.isAutoIrrigationOn || isIrrigating} title="Irrigar Agora">
               <IoWater size={28} />
             </button>
+
             <button className="icon-button" onClick={toggleLights} disabled={controls.isAutoLightingOn} title={controls.lightsOn ? 'Apagar Luzes' : 'Acender Luzes'}>
               {controls.lightsOn ? <IoBulb size={28} className="light-on-icon" /> : <IoBulbOutline size={28} />}
             </button>
+
+            <button className="icon-button" onClick={toggleVentilation} disabled={controls.isAutoVentilationOn} title={controls.ventilationOn ? 'Desligar Ventilação' : 'Ligar Ventilação'}>
+              <FaFan size={26} className={controls.ventilationOn ? 'fan-spin' : ''} />
+            </button>
+
           </div>
         </div>
       </div>

@@ -143,6 +143,16 @@
   filter: drop-shadow(0 0 5px #f1c40f);
 }
 
+@keyframes fan-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.fan-spin {
+  animation: fan-spin 1s linear infinite;
+  color: #3498db;
+}
+
 @keyframes fill-up {
   from {
     height: 0%;
